@@ -3,26 +3,45 @@ const bodyParser = require('body-parser');
 const mysql = require('mysql');
 
 const app = express();
-const PORT = process.env.PORT || 3306;
+const PORT = process.env.PORT || 3000;
 
 app.use(bodyParser.urlencoded({ extended: false }));
 
-// Create a connection to the MySQL database
-const db = mysql.createConnection({
+// Database connection details
+const dbConfig = {
     host: 'btw2bu9p01s29x8hplgj-mysql.services.clever-cloud.com',
     user: 'u7oaqmno7he8keou',
     password: 'RpLD6MtQImUD6trHT8hL', // Replace with your MySQL password
     database: 'btw2bu9p01s29x8hplgj'
-});
+};
 
-// Connect to the database
-db.connect(err => {
-    if (err) {
-        console.error('Database connection failed:', err.stack);
-        return;
-    }
-    console.log('Connected to database.');
-});
+let db;
+
+// Function to handle connection
+function handleDisconnect() {
+    db = mysql.createConnection(dbConfig);
+
+    db.connect(err => {
+        if (err) {
+            console.error('Error connecting to database:', err.stack);
+            setTimeout(handleDisconnect, 2000); // Reconnect after 2 seconds
+        } else {
+            console.log('Connected to database.');
+        }
+    });
+
+    db.on('error', err => {
+        console.error('Database error:', err.stack);
+        if (err.code === 'PROTOCOL_CONNECTION_LOST') {
+            handleDisconnect(); // Reconnect on connection loss
+        } else {
+            throw err;
+        }
+    });
+}
+
+// Initial connection
+handleDisconnect();
 
 // In-memory storage for votes (for simplicity)
 let votes = {
