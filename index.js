@@ -117,7 +117,7 @@ app.post('/ussd', (req, res) => {
             voters.add(phoneNumber); // Mark this phone number as having voted
             response = userLanguages[phoneNumber] === 'en' ? 
                 `END Thank you for voting for ${candidateNames[candidateIndex]}!` : 
-                `END Murakoze gutora ${candidateNames[candidateIndex]}!`;
+                `END Murakoze gutora, Mutoye ${candidateNames[candidateIndex]}!`;
 
             // Insert voting record into the database
             const voteData = {
