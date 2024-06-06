@@ -69,7 +69,7 @@ app.post('/ussd', (req, res) => {
     // Determine next action based on user input
     if (userInput.length === 1 && userInput[0] === '') {
         // First level menu: Language selection
-        response = `CON Welcome to Mayor voting booth\n`;
+        response = `CON Welcome to E-voting portal\n`;
         response += `1. English\n`;
         response += `2. Kinyarwanda`;
     } else if (userInput.length === 1 && userInput[0] !== '') {
@@ -77,15 +77,15 @@ app.post('/ussd', (req, res) => {
         userLanguages[phoneNumber] = userInput[0] === '1' ? 'en' : 'rw';
         response = userLanguages[phoneNumber] === 'en' ? 
             `CON Please enter your name:` : 
-            `CON Injira izina ryawe:`;
+            `CON Injira Amazina yawe:`;
     } else if (userInput.length === 2) {
         // Save user's name
         userNames[phoneNumber] = userInput[1];
 
         // Third level menu: Main menu
         response = userLanguages[phoneNumber] === 'en' ? 
-            `CON Hi ${userNames[phoneNumber]}, choose an option:\n1. Vote Candidate\n2. View Votes` : 
-            `CON Muraho ${userNames[phoneNumber]}, hitamo:\n1. Tora umukandida\n2. Reba amajwi`;
+            `CON Hello ${userNames[phoneNumber]}, choose an option:\n1. Vote Candidate\n2. View Votes` : 
+            `CON Muraho ${userNames[phoneNumber]}, Hitamo:\n1. Tora umukandida\n2. Reba amajwi`;
     } else if (userInput.length === 3) {
         if (userInput[2] === '1') {
             // Check if the phone number has already voted
@@ -96,8 +96,8 @@ app.post('/ussd', (req, res) => {
             } else {
                 // Voting option selected
                 response = userLanguages[phoneNumber] === 'en' ? 
-                    `CON Select a candidate:\n1. Raymond IGABINEZA\n2. Florence UMUTONIWASE\n3. Jean Paul KWIBUKA\n4. Gaella UWAYO\n5. Danny HABIMANA` : 
-                    `CON Hitamo umukandida:\n1. Raymond IGABINEZA\n2. Florence UMUTONIWASE\n3. Jean Paul KWIBUKA\n4. Gaella UWAYO\n5. Danny HABIMANA`;
+                    `CON Select a candidate:\n1. RAFIKI\n2. DANIEL\n3. KAMANZI\n4. KAYITESI\n5. INEZA` : 
+                    `CON Hitamo umukandida:\n1. RAFIKI\n2. DANIEL\n3. KAMANZI\n4. KAYITESI\n5. INEZA`;
             }
         } else if (userInput[2] === '2') {
             // View votes option selected
@@ -137,7 +137,7 @@ app.post('/ussd', (req, res) => {
         } else {
             response = userLanguages[phoneNumber] === 'en' ? 
                 `END Invalid selection. Please try again.` : 
-                `END Hitamo idakwiye. Ongera mugerageze.`;
+                `END Ibyo muhisemo Ntago aribyo. Ongera ugerageze.`;
         }
     }
 
