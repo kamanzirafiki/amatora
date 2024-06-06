@@ -71,13 +71,13 @@ app.post('/ussd', (req, res) => {
         // First level menu: Language selection
         response = `CON Welcome to Mayor voting booth\n`;
         response += `1. English\n`;
-        response += `2. Swahili`;
+        response += `2. Kinyarwanda`;
     } else if (userInput.length === 1 && userInput[0] !== '') {
         // Save user's language choice and move to the name input menu
-        userLanguages[phoneNumber] = userInput[0] === '1' ? 'en' : 'sw';
+        userLanguages[phoneNumber] = userInput[0] === '1' ? 'en' : 'rw';
         response = userLanguages[phoneNumber] === 'en' ? 
             `CON Please enter your name:` : 
-            `CON Tafadhali ingiza jina lako:`;
+            `CON Injira izina ryawe:`;
     } else if (userInput.length === 2) {
         // Save user's name
         userNames[phoneNumber] = userInput[1];
@@ -85,25 +85,25 @@ app.post('/ussd', (req, res) => {
         // Third level menu: Main menu
         response = userLanguages[phoneNumber] === 'en' ? 
             `CON Hi ${userNames[phoneNumber]}, choose an option:\n1. Vote Candidate\n2. View Votes` : 
-            `CON Habari ${userNames[phoneNumber]}, chagua chaguo:\n1. Piga kura\n2. Tazama kura`;
+            `CON Muraho ${userNames[phoneNumber]}, hitamo:\n1. Tora umukandida\n2. Reba amajwi`;
     } else if (userInput.length === 3) {
         if (userInput[2] === '1') {
             // Check if the phone number has already voted
             if (voters.has(phoneNumber)) {
                 response = userLanguages[phoneNumber] === 'en' ? 
                     `END You have already voted. Thank you!` : 
-                    `END Tayari umeshapiga kura. Asante!`;
+                    `END Waratoye. Murakoze!`;
             } else {
                 // Voting option selected
                 response = userLanguages[phoneNumber] === 'en' ? 
                     `CON Select a candidate:\n1. Raymond IGABINEZA\n2. Florence UMUTONIWASE\n3. Jean Paul KWIBUKA\n4. Gaella UWAYO\n5. Danny HABIMANA` : 
-                    `CON Chagua mgombea:\n1. Raymond IGABINEZA\n2. Florence UMUTONIWASE\n3. Jean Paul KWIBUKA\n4. Gaella UWAYO\n5. Danny HABIMANA`;
+                    `CON Hitamo umukandida:\n1. Raymond IGABINEZA\n2. Florence UMUTONIWASE\n3. Jean Paul KWIBUKA\n4. Gaella UWAYO\n5. Danny HABIMANA`;
             }
         } else if (userInput[2] === '2') {
             // View votes option selected
             response = userLanguages[phoneNumber] === 'en' ? 
                 `END Votes:\n` : 
-                `END Kura:\n`;
+                `END Amajwi:\n`;
             for (let candidate in votes) {
                 response += `${candidate}: ${votes[candidate]} votes\n`;
             }
@@ -117,7 +117,7 @@ app.post('/ussd', (req, res) => {
             voters.add(phoneNumber); // Mark this phone number as having voted
             response = userLanguages[phoneNumber] === 'en' ? 
                 `END Thank you for voting for ${candidateNames[candidateIndex]}!` : 
-                `END Asante kwa kumpigia kura ${candidateNames[candidateIndex]}!`;
+                `END Murakoze gutora ${candidateNames[candidateIndex]}!`;
 
             // Insert voting record into the database
             const voteData = {
@@ -137,7 +137,7 @@ app.post('/ussd', (req, res) => {
         } else {
             response = userLanguages[phoneNumber] === 'en' ? 
                 `END Invalid selection. Please try again.` : 
-                `END Uchaguzi batili. Tafadhali jaribu tena.`;
+                `END Hitamo idakwiye. Ongera mugerageze.`;
         }
     }
 
