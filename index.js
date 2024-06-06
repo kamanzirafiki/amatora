@@ -73,11 +73,18 @@ app.post('/ussd', (req, res) => {
         response += `1. English\n`;
         response += `2. Kinyarwanda`;
     } else if (userInput.length === 1 && userInput[0] !== '') {
-        // Save user's language choice and move to the name input menu
-        userLanguages[phoneNumber] = userInput[0] === '1' ? 'en' : 'rw';
-        response = userLanguages[phoneNumber] === 'en' ? 
-            `CON Please enter your name:` : 
-            `CON Injira Amazina yawe:`;
+        // Validate language selection
+        if (userInput[0] === '1' || userInput[0] === '2') {
+            // Save user's language choice and move to the name input menu
+            userLanguages[phoneNumber] = userInput[0] === '1' ? 'en' : 'rw';
+            response = userLanguages[phoneNumber] === 'en' ? 
+                `CON Please enter your name:` : 
+                `CON Injira Amazina yawe:`;
+        } else {
+            // Invalid language selection
+            response = `END Invalid selection. Please try again.` + 
+                       `\nIbyo muhisemo Ntago aribyo. Ongera ugerageze.`;
+        }
     } else if (userInput.length === 2) {
         // Save user's name
         userNames[phoneNumber] = userInput[1];
@@ -87,26 +94,33 @@ app.post('/ussd', (req, res) => {
             `CON Hello ${userNames[phoneNumber]}, choose an option:\n1. Vote Candidate\n2. View Votes` : 
             `CON Muraho ${userNames[phoneNumber]}, Hitamo:\n1. Tora umukandida\n2. Reba amajwi`;
     } else if (userInput.length === 3) {
-        if (userInput[2] === '1') {
-            // Check if the phone number has already voted
-            if (voters.has(phoneNumber)) {
+        if (userInput[2] === '1' || userInput[2] === '2') {
+            if (userInput[2] === '1') {
+                // Check if the phone number has already voted
+                if (voters.has(phoneNumber)) {
+                    response = userLanguages[phoneNumber] === 'en' ? 
+                        `END You have already voted. Thank you!` : 
+                        `END Waratoye. Murakoze!`;
+                } else {
+                    // Voting option selected
+                    response = userLanguages[phoneNumber] === 'en' ? 
+                        `CON Select a candidate:\n1. RAFIKI\n2. DANIEL\n3. KAMANZI\n4. KAYITESI\n5. INEZA` : 
+                        `CON Hitamo umukandida:\n1. RAFIKI\n2. DANIEL\n3. KAMANZI\n4. KAYITESI\n5. INEZA`;
+                }
+            } else if (userInput[2] === '2') {
+                // View votes option selected
                 response = userLanguages[phoneNumber] === 'en' ? 
-                    `END You have already voted. Thank you!` : 
-                    `END Waratoye. Murakoze!`;
-            } else {
-                // Voting option selected
-                response = userLanguages[phoneNumber] === 'en' ? 
-                    `CON Select a candidate:\n1. RAFIKI\n2. DANIEL\n3. KAMANZI\n4. KAYITESI\n5. INEZA` : 
-                    `CON Hitamo umukandida:\n1. RAFIKI\n2. DANIEL\n3. KAMANZI\n4. KAYITESI\n5. INEZA`;
+                    `END Votes:\n` : 
+                    `END Amajwi:\n`;
+                for (let candidate in votes) {
+                    response += `${candidate}: ${votes[candidate]} votes\n`;
+                }
             }
-        } else if (userInput[2] === '2') {
-            // View votes option selected
+        } else {
+            // Invalid main menu selection
             response = userLanguages[phoneNumber] === 'en' ? 
-                `END Votes:\n` : 
-                `END Amajwi:\n`;
-            for (let candidate in votes) {
-                response += `${candidate}: ${votes[candidate]} votes\n`;
-            }
+                `END Invalid selection. Please try again.` : 
+                `END Ibyo muhisemo Ntago aribyo. Ongera ugerageze.`;
         }
     } else if (userInput.length === 4) {
         // Fourth level menu: Voting confirmation
@@ -139,6 +153,11 @@ app.post('/ussd', (req, res) => {
                 `END Invalid selection. Please try again.` : 
                 `END Ibyo muhisemo Ntago aribyo. Ongera ugerageze.`;
         }
+    } else {
+        // Catch-all for any other invalid input
+        response = userLanguages[phoneNumber] === 'en' ? 
+            `END Invalid selection. Please try again.` : 
+            `END Ibyo muhisemo Ntago aribyo. Ongera ugerageze.`;
     }
 
     res.send(response);
