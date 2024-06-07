@@ -90,10 +90,29 @@ app.post('/ussd', (req, res) => {
         if (userInput[0] === '1' || userInput[0] === '2') {
             // Save user's language choice and move to the name input menu
             userLanguages[phoneNumber] = userInput[0] === '1' ? 'en' : 'rw';
-            response = userLanguages[phoneNumber] === 'en' ? 
-                `CON Please enter your name:` : 
-                `CON Uzuza uwmirondoro: \n Amazina yawe:`;
-            res.send(response);
+            if (userInput[0] === '2') {
+                // Skip name input for admin viewing votes
+                response = `CON Fetching votes...\n`;
+                const query = 'SELECT voted_candidate, COUNT(*) as vote_count FROM votes GROUP BY voted_candidate';
+                db.query(query, (err, results) => {
+                    if (err) {
+                        console.error('Error retrieving votes from database:', err.stack);
+                        response += `END Error retrieving votes.`;
+                    } else {
+                        response += `END Votes:\n`;
+                        results.forEach(row => {
+                            response += `${row.voted_candidate}: ${row.vote_count} votes\n`;
+                        });
+                    }
+                    res.send(response);
+                });
+            } else {
+                // Prompt for name input for regular users
+                response = userLanguages[phoneNumber] === 'en' ? 
+                    `CON Please enter your name:` : 
+                    `CON Uzuza uwmirondoro: \n Amazina yawe:`;
+                res.send(response);
+            }
         } else {
             // Invalid language selection
             response = `END Invalid selection. Please try again.` + 
@@ -121,22 +140,7 @@ app.post('/ussd', (req, res) => {
         if (userInput[2] === '1' || userInput[2] === '2') {
             isAdmin(phoneNumber, (isAdmin) => {
                 if (isAdmin) {
-                    if (userInput[2] === '1') {
-                        // Admin viewing votes
-                        const query = 'SELECT voted_candidate, COUNT(*) as vote_count FROM votes GROUP BY voted_candidate';
-                        db.query(query, (err, results) => {
-                            if (err) {
-                                console.error('Error retrieving votes from database:', err.stack);
-                                response = `END Error retrieving votes.`;
-                            } else {
-                                response = `END Votes:\n`;
-                                results.forEach(row => {
-                                    response += `${row.voted_candidate}: ${row.vote_count} votes\n`;
-                                });
-                            }
-                            res.send(response);
-                        });
-                    } else if (userInput[2] === '2') {
+                    if (userInput[2] === '2') {
                         // Admin viewing own information
                         const query = 'SELECT * FROM admin WHERE phone_number = ?';
                         db.query(query, [phoneNumber], (err, results) => {
