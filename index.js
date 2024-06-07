@@ -68,9 +68,9 @@ function isAdmin(phoneNumber, callback) {
     db.query(query, [phoneNumber], (err, results) => {
         if (err) {
             console.error('Error checking admin status:', err.stack);
-            callback(false);
+            callback(false, null);
         } else {
-            callback(results.length > 0);
+            callback(results.length > 0, results.length > 0 ? results[0].name : null);
         }
     });
 }
@@ -84,12 +84,21 @@ app.post('/ussd', (req, res) => {
     // Parse user input
     const userInput = text.split('*').map(option => option.trim());
 
-    // Determine next action based on user input
     if (userInput.length === 1 && userInput[0] === '') {
-        // First level menu: Language selection
-        response = `CON Welcome to E-voting portal\n`;
-        response += `1. English\n`;
-        response += `2. Kinyarwanda`;
+        // First level menu: Check if user is admin
+        isAdmin(phoneNumber, (isAdmin, adminName) => {
+            if (isAdmin) {
+                // Directly show admin menu
+                response = `CON Hello ${adminName}, choose an option:\n1. View Votes\n2. View Information`;
+                res.send(response);
+            } else {
+                // First level menu: Language selection for regular users
+                response = `CON Welcome to E-voting portal\n`;
+                response += `1. English\n`;
+                response += `2. Kinyarwanda`;
+                res.send(response);
+            }
+        });
     } else if (userInput.length === 1 && userInput[0] !== '') {
         // Validate language selection
         if (userInput[0] === '1' || userInput[0] === '2') {
@@ -98,22 +107,22 @@ app.post('/ussd', (req, res) => {
             response = userLanguages[phoneNumber] === 'en' ? 
                 `CON Please enter your name:` : 
                 `CON Uzuza uwmirondoro: \n Amazina yawe:`;
+            res.send(response);
         } else {
             // Invalid language selection
             response = `END Invalid selection. Please try again.` + 
                        `\nIbyo muhisemo Ntago aribyo. Ongera ugerageze.`;
+            res.send(response);
         }
     } else if (userInput.length === 2) {
         // Save user's name
         userNames[phoneNumber] = userInput[1];
 
         // Check if the user is an admin
-        isAdmin(phoneNumber, isAdmin => {
+        isAdmin(phoneNumber, (isAdmin, adminName) => {
             if (isAdmin) {
-                // Admin menu
-                response = userLanguages[phoneNumber] === 'en' ? 
-                    `CON Hello ${userNames[phoneNumber]}, choose an option:\n1. View Votes\n2. View Information` : 
-                    `CON Muraho ${userNames[phoneNumber]}, Hitamo:\n1. Reba amajwi\n2. Reba amakuru`;
+                // Admin menu (this case should normally not occur as admins are handled in the first step)
+                response = `CON Hello ${adminName}, choose an option:\n1. View Votes\n2. View Information`;
             } else {
                 // Regular user menu
                 response = userLanguages[phoneNumber] === 'en' ? 
@@ -122,10 +131,9 @@ app.post('/ussd', (req, res) => {
             }
             res.send(response);
         });
-        return; // Return to wait for async callback
     } else if (userInput.length === 3) {
         if (userInput[2] === '1' || userInput[2] === '2') {
-            isAdmin(phoneNumber, isAdmin => {
+            isAdmin(phoneNumber, (isAdmin) => {
                 if (userInput[2] === '1') {
                     if (isAdmin) {
                         // Admin viewing votes
@@ -143,13 +151,13 @@ app.post('/ussd', (req, res) => {
                             }
                             res.send(response);
                         });
-                        return; // Return to wait for async callback
                     } else {
                         // Check if the phone number has already voted
                         if (voters.has(phoneNumber)) {
                             response = userLanguages[phoneNumber] === 'en' ? 
                                 `END You have already voted. Thank you!` : 
                                 `END Waratoye. Murakoze!`;
+                            res.send(response);
                         } else {
                             // Retrieve candidates from database
                             getCandidates(candidateNames => {
@@ -163,7 +171,6 @@ app.post('/ussd', (req, res) => {
 
                                 res.send(response);
                             });
-                            return; // Return to wait for async callback
                         }
                     }
                 } else if (userInput[2] === '2') {
@@ -185,16 +192,20 @@ app.post('/ussd', (req, res) => {
                         }
                         res.send(response);
                     });
-                    return; // Return to wait for async callback
+                } else {
+                    // Invalid main menu selection
+                    response = userLanguages[phoneNumber] === 'en' ? 
+                        `END Invalid selection. Please try again.` : 
+                        `END Ibyo muhisemo Ntago aribyo. Ongera ugerageze.`;
+                    res.send(response);
                 }
-                res.send(response);
             });
-            return; // Return to wait for async callback
         } else {
             // Invalid main menu selection
             response = userLanguages[phoneNumber] === 'en' ? 
                 `END Invalid selection. Please try again.` : 
                 `END Ibyo muhisemo Ntago aribyo. Ongera ugerageze.`;
+            res.send(response);
         }
     } else if (userInput.length === 4) {
         // Fourth level menu: Voting confirmation
@@ -203,7 +214,9 @@ app.post('/ussd', (req, res) => {
         getCandidates(candidateNames => {
             if (candidateIndex >= 0 && candidateIndex < candidateNames.length) {
                 const selectedCandidate = candidateNames[candidateIndex];
+                votes[selectedCandidate] = (votes[selectedCandidate] || 0) + 1;
                 voters.add(phoneNumber); // Mark this phone number as having voted
+
                 response = userLanguages[phoneNumber] === 'en' ? 
                     `END Thank you for voting for ${selectedCandidate}!` : 
                     `END Murakoze gutora, Mutoye ${selectedCandidate}!`;
@@ -240,9 +253,8 @@ app.post('/ussd', (req, res) => {
         response = userLanguages[phoneNumber] === 'en' ? 
             `END Invalid selection. Please try again.` : 
             `END Ibyo muhisemo Ntago aribyo. Ongera ugerageze.`;
+        res.send(response);
     }
-
-    res.send(response);
 });
 
 app.listen(PORT, () => {
