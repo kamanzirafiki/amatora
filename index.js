@@ -71,6 +71,19 @@ function getCandidates(callback) {
     });
 }
 
+// Check if the phone number belongs to an admin
+function isAdmin(phoneNumber, callback) {
+    const query = 'SELECT * FROM admin WHERE phone_number = ?';
+    db.query(query, [phoneNumber], (err, results) => {
+        if (err) {
+            console.error('Error checking admin status:', err.stack);
+            callback(false);
+        } else {
+            callback(results.length > 0);
+        }
+    });
+}
+
 app.post('/ussd', (req, res) => {
     let response = '';
 
@@ -103,45 +116,69 @@ app.post('/ussd', (req, res) => {
         // Save user's name
         userNames[phoneNumber] = userInput[1];
 
-        // Third level menu: Main menu
-        response = userLanguages[phoneNumber] === 'en' ? 
-            `CON Hello ${userNames[phoneNumber]}, choose an option:\n1. Vote Candidate\n2. View Information` : 
-            `CON Muraho ${userNames[phoneNumber]}, Hitamo:\n1. Tora umukandida\n2. Reba amakuru`;
+        // Check if the user is an admin
+        isAdmin(phoneNumber, isAdmin => {
+            if (isAdmin) {
+                // Admin menu
+                response = userLanguages[phoneNumber] === 'en' ? 
+                    `CON Hello ${userNames[phoneNumber]}, choose an option:\n1. View Votes\n2. View Information` : 
+                    `CON Muraho ${userNames[phoneNumber]}, Hitamo:\n1. Reba amajwi\n2. Reba amakuru`;
+            } else {
+                // Regular user menu
+                response = userLanguages[phoneNumber] === 'en' ? 
+                    `CON Hello ${userNames[phoneNumber]}, choose an option:\n1. Vote Candidate\n2. View Information` : 
+                    `CON Muraho ${userNames[phoneNumber]}, Hitamo:\n1. Tora umukandida\n2. Reba amakuru`;
+            }
+            res.send(response);
+        });
+        return; // Return to wait for async callback
     } else if (userInput.length === 3) {
         if (userInput[2] === '1' || userInput[2] === '2') {
-            if (userInput[2] === '1') {
-                // Check if the phone number has already voted
-                if (voters.has(phoneNumber)) {
-                    response = userLanguages[phoneNumber] === 'en' ? 
-                        `END You have already voted. Thank you!` : 
-                        `END Waratoye. Murakoze!`;
-                } else {
-                    // Retrieve candidates from database
-                    getCandidates(candidateNames => {
-                        response = userLanguages[phoneNumber] === 'en' ? 
-                            `CON Select a candidate:\n` : 
-                            `CON Hitamo umukandida:\n`;
+            isAdmin(phoneNumber, isAdmin => {
+                if (userInput[2] === '1') {
+                    if (isAdmin) {
+                        // Admin viewing votes
+                        response = `END Votes:\n`;
+                        for (let candidate in votes) {
+                            response += `${candidate}: ${votes[candidate]} votes\n`;
+                        }
+                    } else {
+                        // Check if the phone number has already voted
+                        if (voters.has(phoneNumber)) {
+                            response = userLanguages[phoneNumber] === 'en' ? 
+                                `END You have already voted. Thank you!` : 
+                                `END Waratoye. Murakoze!`;
+                        } else {
+                            // Retrieve candidates from database
+                            getCandidates(candidateNames => {
+                                response = userLanguages[phoneNumber] === 'en' ? 
+                                    `CON Select a candidate:\n` : 
+                                    `CON Hitamo umukandida:\n`;
 
-                        candidateNames.forEach((candidate, index) => {
-                            response += `${index + 1}. ${candidate}\n`;
-                        });
+                                candidateNames.forEach((candidate, index) => {
+                                    response += `${index + 1}. ${candidate}\n`;
+                                });
 
-                        res.send(response);
+                                res.send(response);
+                            });
+                            return; // Return to wait for async callback
+                        }
+                    }
+                } else if (userInput[2] === '2') {
+                    // View information option selected
+                    const userName = userNames[phoneNumber];
+                    const userLanguage = userLanguages[phoneNumber];
+                    const votedCandidate = Object.keys(votes).find(candidate => {
+                        return votes[candidate] > 0;
                     });
-                    return; // Return to wait for async callback
-                }
-            } else if (userInput[2] === '2') {
-                // View information option selected
-                const userName = userNames[phoneNumber];
-                const userLanguage = userLanguages[phoneNumber];
-                const votedCandidate = Object.keys(votes).find(candidate => {
-                    return votes[candidate] > 0;
-                });
 
-                response = userLanguage === 'en' ? 
-                    `END Your Information:\nPhone: ${phoneNumber}\nName: ${userName}\nVoted Candidate: ${votedCandidate}` : 
-                    `END Amakuru yawe:\nTelefone: ${phoneNumber}\nIzina: ${userName}\nUmukandida watoye: ${votedCandidate}`;
-            }
+                    response = userLanguage === 'en' ? 
+                        `END Your Information:\nPhone: ${phoneNumber}\nName: ${userName}\nVoted Candidate: ${votedCandidate}` : 
+                        `END Amakuru yawe:\nTelefone: ${phoneNumber}\nIzina: ${userName}\nUmukandida watoye: ${votedCandidate}`;
+                }
+                res.send(response);
+            });
+            return; // Return to wait for async callback
         } else {
             // Invalid main menu selection
             response = userLanguages[phoneNumber] === 'en' ? 
