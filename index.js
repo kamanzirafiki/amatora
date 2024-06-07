@@ -79,7 +79,7 @@ app.post('/ussd', (req, res) => {
             userLanguages[phoneNumber] = userInput[0] === '1' ? 'en' : 'rw';
             response = userLanguages[phoneNumber] === 'en' ? 
                 `CON Please enter your name:` : 
-                `CON Injira Amazina yawe:`;
+                `CON Uzuza uwmirondoro: \n Amazina yawe:`;
         } else {
             // Invalid language selection
             response = `END Invalid selection. Please try again.` + 
