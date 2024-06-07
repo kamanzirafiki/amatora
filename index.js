@@ -43,15 +43,6 @@ function handleDisconnect() {
 // Initial connection
 handleDisconnect();
 
-// In-memory storage for votes (for simplicity)
-let votes = {
-    "RAFIKI": 0,
-    "DANIEL": 0,
-    "KAMANZI": 0,
-    "KAYITESI": 0,
-    "INEZA": 0
-};
-
 // In-memory storage for user data (for simplicity)
 let userNames = {};
 let voters = new Set(); // Set to track phone numbers that have already voted
@@ -67,6 +58,19 @@ function getCandidates(callback) {
         } else {
             const candidateNames = results.map(candidate => candidate.name);
             callback(candidateNames);
+        }
+    });
+}
+
+// Check if the phone number belongs to an admin
+function isAdmin(phoneNumber, callback) {
+    const query = 'SELECT * FROM admin WHERE phone_number = ?';
+    db.query(query, [phoneNumber], (err, results) => {
+        if (err) {
+            console.error('Error checking admin status:', err.stack);
+            callback(false);
+        } else {
+            callback(results.length > 0);
         }
     });
 }
@@ -103,45 +107,89 @@ app.post('/ussd', (req, res) => {
         // Save user's name
         userNames[phoneNumber] = userInput[1];
 
-        // Third level menu: Main menu
-        response = userLanguages[phoneNumber] === 'en' ? 
-            `CON Hello ${userNames[phoneNumber]}, choose an option:\n1. Vote Candidate\n2. View Information` : 
-            `CON Muraho ${userNames[phoneNumber]}, Hitamo:\n1. Tora umukandida\n2. Reba amakuru`;
+        // Check if the user is an admin
+        isAdmin(phoneNumber, isAdmin => {
+            if (isAdmin) {
+                // Admin menu
+                response = userLanguages[phoneNumber] === 'en' ? 
+                    `CON Hello ${userNames[phoneNumber]}, choose an option:\n1. View Votes\n2. View Information` : 
+                    `CON Muraho ${userNames[phoneNumber]}, Hitamo:\n1. Reba amajwi\n2. Reba amakuru`;
+            } else {
+                // Regular user menu
+                response = userLanguages[phoneNumber] === 'en' ? 
+                    `CON Hello ${userNames[phoneNumber]}, choose an option:\n1. Vote Candidate\n2. View Information` : 
+                    `CON Muraho ${userNames[phoneNumber]}, Hitamo:\n1. Tora umukandida\n2. Reba amakuru`;
+            }
+            res.send(response);
+        });
+        return; // Return to wait for async callback
     } else if (userInput.length === 3) {
         if (userInput[2] === '1' || userInput[2] === '2') {
-            if (userInput[2] === '1') {
-                // Check if the phone number has already voted
-                if (voters.has(phoneNumber)) {
-                    response = userLanguages[phoneNumber] === 'en' ? 
-                        `END You have already voted. Thank you!` : 
-                        `END Waratoye. Murakoze!`;
-                } else {
-                    // Retrieve candidates from database
-                    getCandidates(candidateNames => {
-                        response = userLanguages[phoneNumber] === 'en' ? 
-                            `CON Select a candidate:\n` : 
-                            `CON Hitamo umukandida:\n`;
-
-                        candidateNames.forEach((candidate, index) => {
-                            response += `${index + 1}. ${candidate}\n`;
+            isAdmin(phoneNumber, isAdmin => {
+                if (userInput[2] === '1') {
+                    if (isAdmin) {
+                        // Admin viewing votes
+                        response = `END Votes:\n`;
+                        // Query to get votes from the database
+                        const query = 'SELECT voted_candidate, COUNT(*) as vote_count FROM votes GROUP BY voted_candidate';
+                        db.query(query, (err, results) => {
+                            if (err) {
+                                console.error('Error retrieving votes from database:', err.stack);
+                                response += `Error retrieving votes.`;
+                            } else {
+                                results.forEach(row => {
+                                    response += `${row.voted_candidate}: ${row.vote_count} votes\n`;
+                                });
+                            }
+                            res.send(response);
                         });
+                        return; // Return to wait for async callback
+                    } else {
+                        // Check if the phone number has already voted
+                        if (voters.has(phoneNumber)) {
+                            response = userLanguages[phoneNumber] === 'en' ? 
+                                `END You have already voted. Thank you!` : 
+                                `END Waratoye. Murakoze!`;
+                        } else {
+                            // Retrieve candidates from database
+                            getCandidates(candidateNames => {
+                                response = userLanguages[phoneNumber] === 'en' ? 
+                                    `CON Select a candidate:\n` : 
+                                    `CON Hitamo umukandida:\n`;
 
+                                candidateNames.forEach((candidate, index) => {
+                                    response += `${index + 1}. ${candidate}\n`;
+                                });
+
+                                res.send(response);
+                            });
+                            return; // Return to wait for async callback
+                        }
+                    }
+                } else if (userInput[2] === '2') {
+                    // View information option selected
+                    const userName = userNames[phoneNumber];
+                    const userLanguage = userLanguages[phoneNumber];
+                    const query = 'SELECT voted_candidate FROM votes WHERE phone_number = ?';
+                    db.query(query, [phoneNumber], (err, results) => {
+                        if (err) {
+                            console.error('Error retrieving user information from database:', err.stack);
+                            response = userLanguage === 'en' ? 
+                                `END Error retrieving your information.` : 
+                                `END Ikosa ryo kubona amakuru yawe.`;
+                        } else {
+                            const votedCandidate = results.length > 0 ? results[0].voted_candidate : 'None';
+                            response = userLanguage === 'en' ? 
+                                `END Your Information:\nPhone: ${phoneNumber}\nName: ${userName}\nVoted Candidate: ${votedCandidate}` : 
+                                `END Amakuru yawe:\nTelefone: ${phoneNumber}\nIzina: ${userName}\nUmukandida watoye: ${votedCandidate}`;
+                        }
                         res.send(response);
                     });
                     return; // Return to wait for async callback
                 }
-            } else if (userInput[2] === '2') {
-                // View information option selected
-                const userName = userNames[phoneNumber];
-                const userLanguage = userLanguages[phoneNumber];
-                const votedCandidate = Object.keys(votes).find(candidate => {
-                    return votes[candidate] > 0;
-                });
-
-                response = userLanguage === 'en' ? 
-                    `END Your Information:\nPhone: ${phoneNumber}\nName: ${userName}\nVoted Candidate: ${votedCandidate}` : 
-                    `END Amakuru yawe:\nTelefone: ${phoneNumber}\nIzina: ${userName}\nUmukandida watoye: ${votedCandidate}`;
-            }
+                res.send(response);
+            });
+            return; // Return to wait for async callback
         } else {
             // Invalid main menu selection
             response = userLanguages[phoneNumber] === 'en' ? 
@@ -155,19 +203,20 @@ app.post('/ussd', (req, res) => {
         getCandidates(candidateNames => {
             if (candidateIndex >= 0 && candidateIndex < candidateNames.length) {
                 const selectedCandidate = candidateNames[candidateIndex];
-                votes[selectedCandidate] += 1;
                 voters.add(phoneNumber); // Mark this phone number as having voted
                 response = userLanguages[phoneNumber] === 'en' ? 
                     `END Thank you for voting for ${selectedCandidate}!` : 
                     `END Murakoze gutora, Mutoye ${selectedCandidate}!`;
 
                 // Insert voting record into the database
+                const timestamp = new Date();
                 const voteData = {
                     session_id: sessionId,
                     phone_number: phoneNumber,
                     user_name: userNames[phoneNumber],
                     language_used: userLanguages[phoneNumber],
-                    voted_candidate: selectedCandidate
+                    voted_candidate: selectedCandidate,
+                    voted_time: timestamp
                 };
 
                 const query = 'INSERT INTO votes SET ?';
