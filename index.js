@@ -43,21 +43,10 @@ function handleDisconnect() {
 // Initial connection
 handleDisconnect();
 
-// In-memory storage for votes (for simplicity)
-let votes = {
-    "RAFIKI": 0,
-    "DANIEL": 0,
-    "KAMANZI": 0,
-    "KAYITESI": 0,
-    "INEZA": 0
-};
-
-// In-memory storage for user data (for simplicity)
 let userNames = {};
 let voters = new Set(); // Set to track phone numbers that have already voted
 let userLanguages = {}; // Object to store the language preference of each user
 
-// Retrieve candidates from database
 function getCandidates(callback) {
     const query = 'SELECT name FROM candidates';
     db.query(query, (err, results) => {
