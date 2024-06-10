@@ -224,8 +224,7 @@ app.post('/ussd', (req, res) => {
         let candidateIndex = parseInt(userInput[3]) - 1;
 
         getCandidates(candidateNames => {
-            if (
-                if (candidateIndex >= 0 && candidateIndex < candidateNames.length) {
+            if (candidateIndex >= 0 && candidateIndex < candidateNames.length) {
                 const selectedCandidate = candidateNames[candidateIndex];
                 voters.add(phoneNumber); // Mark this phone number as having voted
                 response = userLanguages[phoneNumber] === 'en' ? 
