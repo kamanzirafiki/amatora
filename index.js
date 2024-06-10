@@ -102,13 +102,13 @@ app.post('/ussd', (req, res) => {
                 if (isAdmin) {
                     // Admin menu
                     response = userLanguages[phoneNumber] === 'en' ? 
-                        `CON Hello Admin ${adminName}, choose an option:\n1. View Votes\n2. View Information` : 
-                        `CON Muraho Admin ${adminName}, Hitamo:\n1. Reba amajwi\n2. Reba amakuru`;
+                        `CON Hello  ${adminName}, choose an option:\n1. View Votes\n2. View Information` : 
+                        `CON Muraho  ${adminName}, Hitamo:\n1. Reba amajwi\n2. Reba amakuru`;
                 } else {
                     // Prompt user to enter their name
                     response = userLanguages[phoneNumber] === 'en' ? 
                         `CON Please enter your name:` : 
-                        `CON Uzuza uwmirondoro: \n Amazina yawe:`;
+                        `CON Uzuza umwirondoro: \n Amazina yawe:`;
                 }
                 res.send(response);
             });
@@ -129,8 +129,8 @@ app.post('/ussd', (req, res) => {
             if (isAdmin) {
                 // Admin menu
                 response = userLanguages[phoneNumber] === 'en' ? 
-                    `CON Hello Admin ${adminName}, choose an option:\n1. View Votes\n2. View Information` : 
-                    `CON Muraho Admin ${adminName}, Hitamo:\n1. Reba amajwi\n2. Reba amakuru`;
+                    `CON Hello  ${adminName}, choose an option:\n1. View Votes\n2. View Information` : 
+                    `CON Muraho  ${adminName}, Hitamo:\n1. Reba amajwi\n2. Reba amakuru`;
             } else {
                 // Regular user menu
                 response = userLanguages[phoneNumber] === 'en' ? 
@@ -161,7 +161,6 @@ app.post('/ussd', (req, res) => {
                             res.send(response);
                         });
                         return;
-     // Return to wait for async callback
                     } else {
                         // Check if the phone number has already voted
                         if (voters.has(phoneNumber)) {
@@ -193,20 +192,20 @@ app.post('/ussd', (req, res) => {
                             console.error('Error retrieving admin information from database:', err.stack);
                             response = userLanguages[phoneNumber] === 'en' ? 
                                 `END Error retrieving admin information.` : 
-                                `END Ikosa ryo kubona amakuru ya admin.`;
+                                `END Amakuru ntago abonetse.`;
                             res.send(response);
                         } else if (results.length > 0) {
                             console.log("Admin records:", results);
                             const { name, phone_number } = results[0];
                             response = userLanguages[phoneNumber] === 'en' ? 
-                                `END Admin Information:\nName: ${name}\nPhone: ${phone_number}` : 
-                                `END Amakuru ya Admin:\nIzina: ${name}\nTelefone: ${phone_number}`;
+                                `END Your Information:\nName: ${name}\nPhone: ${phone_number}` : 
+                                `END Umwirondoro:\nIzina: ${name}\nTelefone: ${phone_number}`;
                             res.send(response);
                         } else {
                             console.log("No admin records found.");
                             response = userLanguages[phoneNumber] === 'en' ? 
-                                `END Admin information not found.` : 
-                                `END Amakuru ya admin ntazwi.`;
+                                `END  information not found.` : 
+                                `END Amakuru ntago abonetse.`;
                             res.send(response);
                         }
                     });
