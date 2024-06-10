@@ -160,7 +160,8 @@ app.post('/ussd', (req, res) => {
                             }
                             res.send(response);
                         });
-                        return; // Return to wait for async callback
+                        return;
+     // Return to wait for async callback
                     } else {
                         // Check if the phone number has already voted
                         if (voters.has(phoneNumber)) {
@@ -193,23 +194,24 @@ app.post('/ussd', (req, res) => {
                             response = userLanguages[phoneNumber] === 'en' ? 
                                 `END Error retrieving your information.` : 
                                 `END Ikosa ryo kubona amakuru yawe.`;
+                            res.send(response);
                         } else if (results.length > 0) {
                             console.log("Vote records:", results);
                             const { phone_number, user_name, voted_candidate } = results[0];
                             response = userLanguages[phoneNumber] === 'en' ? 
                                 `END Your Information:\nPhone: ${phone_number}\nName: ${user_name}\nVoted Candidate: ${voted_candidate}` : 
                                 `END Amakuru yawe:\nTelefone: ${phone_number}\nIzina: ${user_name}\nUmukandida watoye: ${voted_candidate}`;
+                            res.send(response);
                         } else {
                             console.log("No vote records found for admin.");
                             response = userLanguages[phoneNumber] === 'en' ? 
                                 `END No information found.` : 
                                 `END Amakuru ntazwi.`;
+                            res.send(response);
                         }
-                        res.send(response);
                     });
                     return; // Return to wait for async callback
                 }
-                res.send(response);
             });
             return; // Return to wait for async callback
         } else {
@@ -220,7 +222,7 @@ app.post('/ussd', (req, res) => {
         }
     } else if (userInput.length === 4) {
         // Fourth level menu: Voting confirmation
-            let candidateIndex = parseInt(userInput[3]) - 1;
+        let candidateIndex = parseInt(userInput[3]) - 1;
 
         getCandidates(candidateNames => {
             if (candidateIndex >= 0 && candidateIndex < candidateNames.length) {
