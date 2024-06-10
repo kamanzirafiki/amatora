@@ -7,11 +7,11 @@ const PORT = process.env.PORT || 3000;
 
 app.use(bodyParser.urlencoded({ extended: false }));
 
-// Database connection details
+// DB Connection
 const dbConfig = {
     host: 'btw2bu9p01s29x8hplgj-mysql.services.clever-cloud.com',
     user: 'u7oaqmno7he8keou',
-    password: 'RpLD6MtQImUD6trHT8hL', // Replace with your MySQL password
+    password: 'RpLD6MtQImUD6trHT8hL', 
     database: 'btw2bu9p01s29x8hplgj'
 };
 
@@ -43,7 +43,7 @@ function handleDisconnect() {
 // Initial connection
 handleDisconnect();
 
-// In-memory storage for user data (for simplicity)
+// In-memory storage for user data
 let userNames = {};
 let voters = new Set(); // Set to track phone numbers that have already voted
 let userLanguages = {}; // Object to store the language preference of each user
@@ -102,12 +102,12 @@ app.post('/ussd', (req, res) => {
                 if (isAdmin) {
                     // Admin menu
                     response = userLanguages[phoneNumber] === 'en' ? 
-                        `CON Hello  ${adminName}, choose an option:\n1. View Votes\n2. View Information` : 
-                        `CON Muraho  ${adminName}, Hitamo:\n1. Reba amajwi\n2. Reba amakuru`;
+                        `CON Hello ${adminName}, choose an option:\n1. View Votes\n2. My Information` : 
+                        `CON Muraho ${adminName}, Hitamo:\n1. Reba amajwi\n2. Umwirondoro wanjye`;
                 } else {
                     // Prompt user to enter their name
                     response = userLanguages[phoneNumber] === 'en' ? 
-                        `CON Please enter your name:` : 
+                        `CON Enter your name:` : 
                         `CON Uzuza umwirondoro: \n Amazina yawe:`;
                 }
                 res.send(response);
@@ -129,13 +129,13 @@ app.post('/ussd', (req, res) => {
             if (isAdmin) {
                 // Admin menu
                 response = userLanguages[phoneNumber] === 'en' ? 
-                    `CON Hello  ${adminName}, choose an option:\n1. View Votes\n2. View Information` : 
-                    `CON Muraho  ${adminName}, Hitamo:\n1. Reba amajwi\n2. Reba amakuru`;
+                    `CON Hello ${adminName}, choose an option:\n1. View Votes\n2. My Information` : 
+                    `CON Muraho ${adminName}, Hitamo:\n1. Reba amajwi\n2. Umwirondoro wanjye`;
             } else {
                 // Regular user menu
                 response = userLanguages[phoneNumber] === 'en' ? 
-                    `CON Hello ${userNames[phoneNumber]}, choose an option:\n1. Vote Candidate\n2. View Information` : 
-                    `CON Muraho ${userNames[phoneNumber]}, Hitamo:\n1. Tora umukandida\n2. Reba amakuru`;
+                    `CON Hello ${userNames[phoneNumber]}, choose an option:\n1. Vote Candidate\n2. My Information` : 
+                    `CON Muraho ${userNames[phoneNumber]}, Hitamo:\n1. Tora umukandida\n2. Umwirondoro wanjye`;
             }
             res.send(response);
         });
@@ -146,19 +146,30 @@ app.post('/ussd', (req, res) => {
                 if (userInput[2] === '1') {
                     if (isAdmin) {
                         // Admin viewing votes
-                        response = `END Votes:\n`;
-                        // Query to get votes from the database
-                        const query = 'SELECT voted_candidate, COUNT(*) as vote_count FROM votes GROUP BY voted_candidate';
-                        db.query(query, (err, results) => {
+                        const totalVotesQuery = 'SELECT COUNT(*) as total_votes FROM votes';
+                        db.query(totalVotesQuery, (err, totalResults) => {
                             if (err) {
-                                console.error('Error retrieving votes from database:', err.stack);
-                                response += `Error retrieving votes.`;
-                            } else {
-                                results.forEach(row => {
-                                    response += `${row.voted_candidate}: ${row.vote_count} votes\n`;
-                                });
+                                console.error('Error retrieving total votes from database:', err.stack);
+                                response = `END Error retrieving votes.`;
+                                res.send(response);
+                                return;
                             }
-                            res.send(response);
+                            const totalVotes = totalResults[0].total_votes;
+
+                            const votesQuery = 'SELECT voted_candidate, COUNT(*) as vote_count FROM votes GROUP BY voted_candidate';
+                            db.query(votesQuery, (err, results) => {
+                                if (err) {
+                                    console.error('Error retrieving votes from database:', err.stack);
+                                    response = `END Error retrieving votes.`;
+                                } else {
+                                    response = `END Votes:\n`;
+                                    results.forEach(row => {
+                                        const percentage = ((row.vote_count / totalVotes) * 100).toFixed(2);
+                                        response += `${row.voted_candidate}: ${row.vote_count} votes (${percentage}%)\n`;
+                                    });
+                                }
+                                res.send(response);
+                            });
                         });
                         return;
                     } else {
@@ -192,7 +203,7 @@ app.post('/ussd', (req, res) => {
                             console.error('Error retrieving admin information from database:', err.stack);
                             response = userLanguages[phoneNumber] === 'en' ? 
                                 `END Error retrieving admin information.` : 
-                                `END Amakuru ntago abonetse.`;
+                                `END Umwirondoro ntago abonetse.`;
                             res.send(response);
                         } else if (results.length > 0) {
                             console.log("Admin records:", results);
