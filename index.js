@@ -102,8 +102,8 @@ app.post('/ussd', (req, res) => {
                 if (isAdmin) {
                     // Admin menu
                     response = userLanguages[phoneNumber] === 'en' ? 
-                        `CON Hello Admin ${adminName}, choose an option:\n1. View Votes\n2. View Information` : 
-                        `CON Muraho Admin ${adminName}, Hitamo:\n1. Reba amajwi\n2. Reba amakuru`;
+                        `CON Hello  ${adminName}, choose an option:\n1. View Votes\n2. View Information` : 
+                        `CON Muraho  ${adminName}, Hitamo:\n1. Reba amajwi\n2. Reba amakuru`;
                 } else {
                     // Prompt user to enter their name
                     response = userLanguages[phoneNumber] === 'en' ? 
@@ -129,8 +129,8 @@ app.post('/ussd', (req, res) => {
             if (isAdmin) {
                 // Admin menu
                 response = userLanguages[phoneNumber] === 'en' ? 
-                    `CON Hello Admin ${adminName}, choose an option:\n1. View Votes\n2. View Information` : 
-                    `CON Muraho Admin ${adminName}, Hitamo:\n1. Reba amajwi\n2. Reba amakuru`;
+                    `CON Hello ${adminName}, choose an option:\n1. View Votes\n2. View Information` : 
+                    `CON Muraho ${adminName}, Hitamo:\n1. Reba amajwi\n2. Reba amakuru`;
             } else {
                 // Regular user menu
                 response = userLanguages[phoneNumber] === 'en' ? 
@@ -185,20 +185,22 @@ app.post('/ussd', (req, res) => {
                     }
                 } else if (userInput[2] === '2') {
                     // View information option selected
-                    const userName = userNames[phoneNumber];
-                    const userLanguage = userLanguages[phoneNumber];
-                    const query = 'SELECT voted_candidate FROM votes WHERE phone_number = ?';
+                    const query = 'SELECT phone_number, user_name, voted_candidate FROM votes WHERE phone_number = ?';
                     db.query(query, [phoneNumber], (err, results) => {
                         if (err) {
                             console.error('Error retrieving user information from database:', err.stack);
-                            response = userLanguage === 'en' ? 
+                            response = userLanguages[phoneNumber] === 'en' ? 
                                 `END Error retrieving your information.` : 
                                 `END Ikosa ryo kubona amakuru yawe.`;
+                        } else if (results.length > 0) {
+                            const { phone_number, user_name, voted_candidate } = results[0];
+                            response = userLanguages[phoneNumber] === 'en' ? 
+                                `END Your Information:\nPhone: ${phone_number}\nName: ${user_name}\nVoted Candidate: ${voted_candidate}` : 
+                                `END Amakuru yawe:\nTelefone: ${phone_number}\nIzina: ${user_name}\nUmukandida watoye: ${voted_candidate}`;
                         } else {
-                            const votedCandidate = results.length > 0 ? results[0].voted_candidate : 'None';
-                            response = userLanguage === 'en' ? 
-                                `END Your Information:\nPhone: ${phoneNumber}\nName: ${userName}\nVoted Candidate: ${votedCandidate}` : 
-                                `END Amakuru yawe:\nTelefone: ${phoneNumber}\nIzina: ${userName}\nUmukandida watoye: ${votedCandidate}`;
+                            response = userLanguages[phoneNumber] === 'en' ? 
+                                `END No information found.` : 
+                                `END Amakuru ntazwi.`;
                         }
                         res.send(response);
                     });
