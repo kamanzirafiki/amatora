@@ -62,15 +62,17 @@ function getCandidates(callback) {
     });
 }
 
-// Check if the phone number belongs to an admin
+// Check if the phone number belongs to an admin and retrieve admin name
 function isAdmin(phoneNumber, callback) {
-    const query = 'SELECT * FROM admin WHERE phone_number = ?';
+    const query = 'SELECT name FROM admin WHERE phone_number = ?';
     db.query(query, [phoneNumber], (err, results) => {
         if (err) {
             console.error('Error checking admin status:', err.stack);
-            callback(false);
+            callback(false, null);
+        } else if (results.length > 0) {
+            callback(true, results[0].name);
         } else {
-            callback(results.length > 0);
+            callback(false, null);
         }
     });
 }
@@ -96,12 +98,12 @@ app.post('/ussd', (req, res) => {
             // Save user's language choice and check if the user is an admin
             userLanguages[phoneNumber] = userInput[0] === '1' ? 'en' : 'rw';
 
-            isAdmin(phoneNumber, isAdmin => {
+            isAdmin(phoneNumber, (isAdmin, adminName) => {
                 if (isAdmin) {
                     // Admin menu
                     response = userLanguages[phoneNumber] === 'en' ? 
-                        `CON Hello Admin, choose an option:\n1. View Votes\n2. View Information` : 
-                        `CON Muraho Admin, Hitamo:\n1. Reba amajwi\n2. Reba amakuru`;
+                        `CON Hello Admin ${adminName}, choose an option:\n1. View Votes\n2. View Information` : 
+                        `CON Muraho Admin ${adminName}, Hitamo:\n1. Reba amajwi\n2. Reba amakuru`;
                 } else {
                     // Prompt user to enter their name
                     response = userLanguages[phoneNumber] === 'en' ? 
@@ -123,12 +125,12 @@ app.post('/ussd', (req, res) => {
         }
 
         // Check if the user is an admin
-        isAdmin(phoneNumber, isAdmin => {
+        isAdmin(phoneNumber, (isAdmin, adminName) => {
             if (isAdmin) {
                 // Admin menu
                 response = userLanguages[phoneNumber] === 'en' ? 
-                    `CON Hello Admin, choose an option:\n1. View Votes\n2. View Information` : 
-                    `CON Muraho Admin, Hitamo:\n1. Reba amajwi\n2. Reba amakuru`;
+                    `CON Hello Admin ${adminName}, choose an option:\n1. View Votes\n2. View Information` : 
+                    `CON Muraho Admin ${adminName}, Hitamo:\n1. Reba amajwi\n2. Reba amakuru`;
             } else {
                 // Regular user menu
                 response = userLanguages[phoneNumber] === 'en' ? 
@@ -140,7 +142,7 @@ app.post('/ussd', (req, res) => {
         return; // Return to wait for async callback
     } else if (userInput.length === 3) {
         if (userInput[2] === '1' || userInput[2] === '2') {
-            isAdmin(phoneNumber, isAdmin => {
+            isAdmin(phoneNumber, (isAdmin, adminName) => {
                 if (userInput[2] === '1') {
                     if (isAdmin) {
                         // Admin viewing votes
@@ -217,49 +219,38 @@ app.post('/ussd', (req, res) => {
 
         getCandidates(candidateNames => {
             if (candidateIndex >= 0 && candidateIndex < candidateNames.length) {
-                const selectedCandidate = candidateNames[candidateIndex];
-                voters.add(phoneNumber); // Mark this phone number as having voted
-                response = userLanguages[phoneNumber] === 'en' ? 
-                    `END Thank you for voting ${selectedCandidate}!` : 
-                    `END Murakoze gutora, Mutoye ${selectedCandidate}!`;
+                let candidateName = candidateNames[candidateIndex];
+                voters.add(phoneNumber); // Mark the phone number as voted
 
-                // Insert voting record into the database
-                const timestamp = new Date();
-                const voteData = {
-                    session_id: sessionId,
-                    phone_number: phoneNumber,
-                    user_name: userNames[phoneNumber],
-                    language_used: userLanguages[phoneNumber],
-                    voted_candidate: selectedCandidate,
-                    voted_time: timestamp
-                };
-
-                const query = 'INSERT INTO votes SET ?';
-                db.query(query, voteData, (err, result) => {
+                // Insert vote into the database
+                const query = 'INSERT INTO votes (phone_number, voted_candidate) VALUES (?, ?)';
+                db.query(query, [phoneNumber, candidateName], (err) => {
                     if (err) {
-                        console.error('Error inserting data into database:', err.stack);
+                        console.error('Error saving vote to database:', err.stack);
+                        response = userLanguages[phoneNumber] === 'en' ? 
+                            `END Error saving your vote. Please try again.` : 
+                            `END Ikosa mu kubika itora ryawe. Ongera ugerageze.`;
+                    } else {
+                        response = userLanguages[phoneNumber] === 'en' ? 
+                            `END Thank you for voting!` : 
+                            `END Murakoze gutora!`;
                     }
+                    res.send(response);
                 });
-
-                res.send(response);
+                return; // Return to wait for async callback
             } else {
                 response = userLanguages[phoneNumber] === 'en' ? 
-                    `END Invalid selection. Please try again.` : 
+                    `END Invalid candidate selection. Please try again.` : 
                     `END Ibyo muhisemo Ntago aribyo. Ongera ugerageze.`;
-                res.send(response);
             }
+            res.send(response);
         });
         return; // Return to wait for async callback
-    } else {
-        // Catch-all for any other invalid input
-        response = userLanguages[phoneNumber] === 'en' ? 
-            `END Invalid selection. Please try again.` : 
-            `END Ibyo muhisemo Ntago aribyo. Ongera ugerageze.`;
     }
 
     res.send(response);
 });
 
 app.listen(PORT, () => {
-    console.log(`Server is running on port ${PORT}`);
+    console.log(`Server running on port ${PORT}`);
 });
