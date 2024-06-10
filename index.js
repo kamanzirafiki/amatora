@@ -102,8 +102,8 @@ app.post('/ussd', (req, res) => {
                 if (isAdmin) {
                     // Admin menu
                     response = userLanguages[phoneNumber] === 'en' ? 
-                        `CON Hello  ${adminName}, choose an option:\n1. View Votes\n2. View Information` : 
-                        `CON Muraho  ${adminName}, Hitamo:\n1. Reba amajwi\n2. Reba amakuru`;
+                        `CON Hello Admin ${adminName}, choose an option:\n1. View Votes\n2. View Information` : 
+                        `CON Muraho Admin ${adminName}, Hitamo:\n1. Reba amajwi\n2. Reba amakuru`;
                 } else {
                     // Prompt user to enter their name
                     response = userLanguages[phoneNumber] === 'en' ? 
@@ -129,8 +129,8 @@ app.post('/ussd', (req, res) => {
             if (isAdmin) {
                 // Admin menu
                 response = userLanguages[phoneNumber] === 'en' ? 
-                    `CON Hello ${adminName}, choose an option:\n1. View Votes\n2. View Information` : 
-                    `CON Muraho ${adminName}, Hitamo:\n1. Reba amajwi\n2. Reba amakuru`;
+                    `CON Hello Admin ${adminName}, choose an option:\n1. View Votes\n2. View Information` : 
+                    `CON Muraho Admin ${adminName}, Hitamo:\n1. Reba amajwi\n2. Reba amakuru`;
             } else {
                 // Regular user menu
                 response = userLanguages[phoneNumber] === 'en' ? 
@@ -221,38 +221,49 @@ app.post('/ussd', (req, res) => {
 
         getCandidates(candidateNames => {
             if (candidateIndex >= 0 && candidateIndex < candidateNames.length) {
-                let candidateName = candidateNames[candidateIndex];
-                voters.add(phoneNumber); // Mark the phone number as voted
+                const selectedCandidate = candidateNames[candidateIndex];
+                voters.add(phoneNumber); // Mark this phone number as having voted
+                response = userLanguages[phoneNumber] === 'en' ? 
+                    `END Thank you for voting ${selectedCandidate}!` : 
+                    `END Murakoze gutora, Mutoye ${selectedCandidate}!`;
 
-                // Insert vote into the database
-                const query = 'INSERT INTO votes (phone_number, voted_candidate) VALUES (?, ?)';
-                db.query(query, [phoneNumber, candidateName], (err) => {
+                // Insert voting record into the database
+                const timestamp = new Date();
+                const voteData = {
+                    session_id: sessionId,
+                    phone_number: phoneNumber,
+                    user_name: userNames[phoneNumber],
+                    language_used: userLanguages[phoneNumber],
+                    voted_candidate: selectedCandidate,
+                    voted_time: timestamp
+                };
+
+                const query = 'INSERT INTO votes SET ?';
+                db.query(query, voteData, (err, result) => {
                     if (err) {
-                        console.error('Error saving vote to database:', err.stack);
-                        response = userLanguages[phoneNumber] === 'en' ? 
-                            `END Error saving your vote. Please try again.` : 
-                            `END Ikosa mu kubika itora ryawe. Ongera ugerageze.`;
-                    } else {
-                        response = userLanguages[phoneNumber] === 'en' ? 
-                            `END Thank you for voting!` : 
-                            `END Murakoze gutora!`;
+                        console.error('Error inserting data into database:', err.stack);
                     }
-                    res.send(response);
                 });
-                return; // Return to wait for async callback
+
+                res.send(response);
             } else {
                 response = userLanguages[phoneNumber] === 'en' ? 
-                    `END Invalid candidate selection. Please try again.` : 
+                    `END Invalid selection. Please try again.` : 
                     `END Ibyo muhisemo Ntago aribyo. Ongera ugerageze.`;
+                res.send(response);
             }
-            res.send(response);
         });
         return; // Return to wait for async callback
+    } else {
+        // Catch-all for any other invalid input
+        response = userLanguages[phoneNumber] === 'en' ? 
+            `END Invalid selection. Please try again.` : 
+            `END Ibyo muhisemo Ntago aribyo. Ongera ugerageze.`;
     }
 
     res.send(response);
 });
 
 app.listen(PORT, () => {
-    console.log(`Server running on port ${PORT}`);
+    console.log(`Server is running on port ${PORT}`);
 });
