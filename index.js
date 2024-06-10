@@ -64,7 +64,7 @@ function getCandidates(callback) {
 
 // Check if the phone number belongs to an admin and retrieve admin name
 function isAdmin(phoneNumber, callback) {
-    const query = 'SELECT name FROM admin WHERE phone_number = ?';
+    const query = 'SELECT name, phone_number FROM admin WHERE phone_number = ?';
     db.query(query, [phoneNumber], (err, results) => {
         if (err) {
             console.error('Error checking admin status:', err.stack);
@@ -186,27 +186,27 @@ app.post('/ussd', (req, res) => {
                     }
                 } else if (userInput[2] === '2') {
                     // View information option selected
-                    const query = 'SELECT phone_number, user_name, voted_candidate FROM votes WHERE phone_number = ?';
+                    const query = 'SELECT name, phone_number FROM admin WHERE phone_number = ?';
                     console.log("Admin's phone number:", phoneNumber);
                     db.query(query, [phoneNumber], (err, results) => {
                         if (err) {
-                            console.error('Error retrieving user information from database:', err.stack);
+                            console.error('Error retrieving admin information from database:', err.stack);
                             response = userLanguages[phoneNumber] === 'en' ? 
-                                `END Error retrieving your information.` : 
-                                `END Ikosa ryo kubona amakuru yawe.`;
+                                `END Error retrieving admin information.` : 
+                                `END Ikosa ryo kubona amakuru ya admin.`;
                             res.send(response);
                         } else if (results.length > 0) {
-                            console.log("Vote records:", results);
-                            const { phone_number, user_name, voted_candidate } = results[0];
+                            console.log("Admin records:", results);
+                            const { name, phone_number } = results[0];
                             response = userLanguages[phoneNumber] === 'en' ? 
-                                `END Your Information:\nPhone: ${phone_number}\nName: ${user_name}\nVoted Candidate: ${voted_candidate}` : 
-                                `END Amakuru yawe:\nTelefone: ${phone_number}\nIzina: ${user_name}\nUmukandida watoye: ${voted_candidate}`;
+                                `END Admin Information:\nName: ${name}\nPhone: ${phone_number}` : 
+                                `END Amakuru ya Admin:\nIzina: ${name}\nTelefone: ${phone_number}`;
                             res.send(response);
                         } else {
-                            console.log("No vote records found for admin.");
+                            console.log("No admin records found.");
                             response = userLanguages[phoneNumber] === 'en' ? 
-                                `END No information found.` : 
-                                `END Amakuru ntazwi.`;
+                                `END Admin information not found.` : 
+                                `END Amakuru ya admin ntazwi.`;
                             res.send(response);
                         }
                     });
@@ -225,7 +225,8 @@ app.post('/ussd', (req, res) => {
         let candidateIndex = parseInt(userInput[3]) - 1;
 
         getCandidates(candidateNames => {
-            if (candidateIndex >= 0 && candidateIndex < candidateNames.length) {
+            if (
+                if (candidateIndex >= 0 && candidateIndex < candidateNames.length) {
                 const selectedCandidate = candidateNames[candidateIndex];
                 voters.add(phoneNumber); // Mark this phone number as having voted
                 response = userLanguages[phoneNumber] === 'en' ? 
