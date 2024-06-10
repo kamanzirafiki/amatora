@@ -102,8 +102,8 @@ app.post('/ussd', (req, res) => {
                 if (isAdmin) {
                     // Admin menu
                     response = userLanguages[phoneNumber] === 'en' ? 
-                        `CON Hello Admin ${adminName}, choose an option:\n1. View Votes\n2. View Information` : 
-                        `CON Muraho Admin ${adminName}, Hitamo:\n1. Reba amajwi\n2. Reba amakuru`;
+                        `CON Hello  ${adminName}, choose an option:\n1. View Votes\n2. View Information` : 
+                        `CON Muraho  ${adminName}, Hitamo:\n1. Reba amajwi\n2. Reba amakuru`;
                 } else {
                     // Prompt user to enter their name
                     response = userLanguages[phoneNumber] === 'en' ? 
@@ -191,7 +191,7 @@ app.post('/ussd', (req, res) => {
                             console.error('Error retrieving user information from database:', err.stack);
                             response = userLanguages[phoneNumber] === 'en' ? 
                                 `END Error retrieving your information.` : 
-                                `END Ikosa ryo kubona amakuru yawe.`;
+                                `END Umwirondoro ntago ubonetse.`;
                         } else if (results.length > 0) {
                             const { phone_number, user_name, voted_candidate } = results[0];
                             response = userLanguages[phoneNumber] === 'en' ? 
@@ -224,8 +224,8 @@ app.post('/ussd', (req, res) => {
                 const selectedCandidate = candidateNames[candidateIndex];
                 voters.add(phoneNumber); // Mark this phone number as having voted
                 response = userLanguages[phoneNumber] === 'en' ? 
-                    `END Thank you for voting ${selectedCandidate}!` : 
-                    `END Murakoze gutora, Mutoye ${selectedCandidate}!`;
+                    `END Thank you for voting ${selectedCandidate}` : 
+                    `END Murakoze gutora, Mutoye ${selectedCandidate}`;
 
                 // Insert voting record into the database
                 const timestamp = new Date();
