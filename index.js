@@ -102,8 +102,8 @@ app.post('/ussd', (req, res) => {
                 if (isAdmin) {
                     // Admin menu
                     response = userLanguages[phoneNumber] === 'en' ? 
-                        `CON Hello  ${adminName}, choose an option:\n1. View Votes\n2. View Information` : 
-                        `CON Muraho  ${adminName}, Hitamo:\n1. Reba amajwi\n2. Reba amakuru`;
+                        `CON Hello Admin ${adminName}, choose an option:\n1. View Votes\n2. View Information` : 
+                        `CON Muraho Admin ${adminName}, Hitamo:\n1. Reba amajwi\n2. Reba amakuru`;
                 } else {
                     // Prompt user to enter their name
                     response = userLanguages[phoneNumber] === 'en' ? 
@@ -186,18 +186,21 @@ app.post('/ussd', (req, res) => {
                 } else if (userInput[2] === '2') {
                     // View information option selected
                     const query = 'SELECT phone_number, user_name, voted_candidate FROM votes WHERE phone_number = ?';
+                    console.log("Admin's phone number:", phoneNumber);
                     db.query(query, [phoneNumber], (err, results) => {
                         if (err) {
                             console.error('Error retrieving user information from database:', err.stack);
                             response = userLanguages[phoneNumber] === 'en' ? 
                                 `END Error retrieving your information.` : 
-                                `END Umwirondoro ntago ubonetse.`;
+                                `END Ikosa ryo kubona amakuru yawe.`;
                         } else if (results.length > 0) {
+                            console.log("Vote records:", results);
                             const { phone_number, user_name, voted_candidate } = results[0];
                             response = userLanguages[phoneNumber] === 'en' ? 
                                 `END Your Information:\nPhone: ${phone_number}\nName: ${user_name}\nVoted Candidate: ${voted_candidate}` : 
                                 `END Amakuru yawe:\nTelefone: ${phone_number}\nIzina: ${user_name}\nUmukandida watoye: ${voted_candidate}`;
                         } else {
+                            console.log("No vote records found for admin.");
                             response = userLanguages[phoneNumber] === 'en' ? 
                                 `END No information found.` : 
                                 `END Amakuru ntazwi.`;
@@ -217,15 +220,15 @@ app.post('/ussd', (req, res) => {
         }
     } else if (userInput.length === 4) {
         // Fourth level menu: Voting confirmation
-        let candidateIndex = parseInt(userInput[3]) - 1;
+            let candidateIndex = parseInt(userInput[3]) - 1;
 
         getCandidates(candidateNames => {
             if (candidateIndex >= 0 && candidateIndex < candidateNames.length) {
                 const selectedCandidate = candidateNames[candidateIndex];
                 voters.add(phoneNumber); // Mark this phone number as having voted
                 response = userLanguages[phoneNumber] === 'en' ? 
-                    `END Thank you for voting ${selectedCandidate}` : 
-                    `END Murakoze gutora, Mutoye ${selectedCandidate}`;
+                    `END Thank you for voting ${selectedCandidate}!` : 
+                    `END Murakoze gutora, Mutoye ${selectedCandidate}!`;
 
                 // Insert voting record into the database
                 const timestamp = new Date();
