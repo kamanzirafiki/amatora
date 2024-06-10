@@ -93,27 +93,42 @@ app.post('/ussd', (req, res) => {
     } else if (userInput.length === 1 && userInput[0] !== '') {
         // Validate language selection
         if (userInput[0] === '1' || userInput[0] === '2') {
-            // Save user's language choice and move to the name input menu
+            // Save user's language choice and check if the user is an admin
             userLanguages[phoneNumber] = userInput[0] === '1' ? 'en' : 'rw';
-            response = userLanguages[phoneNumber] === 'en' ? 
-                `CON Please enter your name:` : 
-                `CON Uzuza uwmirondoro: \n Amazina yawe:`;
+
+            isAdmin(phoneNumber, isAdmin => {
+                if (isAdmin) {
+                    // Admin menu
+                    response = userLanguages[phoneNumber] === 'en' ? 
+                        `CON Hello Admin, choose an option:\n1. View Votes\n2. View Information` : 
+                        `CON Muraho Admin, Hitamo:\n1. Reba amajwi\n2. Reba amakuru`;
+                } else {
+                    // Prompt user to enter their name
+                    response = userLanguages[phoneNumber] === 'en' ? 
+                        `CON Please enter your name:` : 
+                        `CON Uzuza uwmirondoro: \n Amazina yawe:`;
+                }
+                res.send(response);
+            });
+            return; // Return to wait for async callback
         } else {
             // Invalid language selection
             response = `END Invalid selection. Please try again.` + 
                        `\nIbyo muhisemo Ntago aribyo. Ongera ugerageze.`;
         }
     } else if (userInput.length === 2) {
-        // Save user's name
-        userNames[phoneNumber] = userInput[1];
+        if (userLanguages[phoneNumber] && !userNames[phoneNumber]) {
+            // Save user's name
+            userNames[phoneNumber] = userInput[1];
+        }
 
         // Check if the user is an admin
         isAdmin(phoneNumber, isAdmin => {
             if (isAdmin) {
                 // Admin menu
                 response = userLanguages[phoneNumber] === 'en' ? 
-                    `CON Hello ${userNames[phoneNumber]}, choose an option:\n1. View Votes\n2. View Information` : 
-                    `CON Muraho ${userNames[phoneNumber]}, Hitamo:\n1. Reba amajwi\n2. Reba amakuru`;
+                    `CON Hello Admin, choose an option:\n1. View Votes\n2. View Information` : 
+                    `CON Muraho Admin, Hitamo:\n1. Reba amajwi\n2. Reba amakuru`;
             } else {
                 // Regular user menu
                 response = userLanguages[phoneNumber] === 'en' ? 
