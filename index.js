@@ -77,6 +77,27 @@ function isAdmin(phoneNumber, callback) {
     });
 }
 
+// Function to retrieve user information from votes table
+function getUserInfo(phoneNumber, callback) {
+    const query = 'SELECT user_name, voted_candidate FROM votes WHERE phone_number = ?';
+    db.query(query, [phoneNumber], (err, results) => {
+        if (err) {
+            console.error('Error retrieving user information from database:', err.stack);
+            callback(null);
+        } else {
+            if (results.length > 0) {
+                const userInfo = {
+                    name: results[0].user_name,
+                    voted_candidate: results[0].voted_candidate
+                };
+                callback(userInfo);
+            } else {
+                callback(null);
+            }
+        }
+    });
+}
+
 app.post('/ussd', (req, res) => {
     let response = '';
 
@@ -196,29 +217,22 @@ app.post('/ussd', (req, res) => {
                     }
                 } else if (userInput[2] === '2') {
                     // View information option selected
-                    const query = 'SELECT name, phone_number FROM admin WHERE phone_number = ?';
-                    console.log("Admin's phone number:", phoneNumber);
+                    const userName = userNames[phoneNumber];
+                    const userLanguage = userLanguages[phoneNumber];
+                    const query = 'SELECT voted_candidate FROM votes WHERE phone_number = ?';
                     db.query(query, [phoneNumber], (err, results) => {
                         if (err) {
-                            console.error('Error retrieving admin information from database:', err.stack);
-                            response = userLanguages[phoneNumber] === 'en' ? 
-                                `END Error retrieving admin information.` : 
-                                `END Umwirondoro ntago abonetse.`;
-                            res.send(response);
-                        } else if (results.length > 0) {
-                            console.log("Admin records:", results);
-                            const { name, phone_number } = results[0];
-                            response = userLanguages[phoneNumber] === 'en' ? 
-                                `END Your Information:\nName: ${name}\nPhone: ${phone_number}` : 
-                                `END Umwirondoro:\nIzina: ${name}\nTelefone: ${phone_number}`;
-                            res.send(response);
+                            console.error('Error retrieving user information from database:', err.stack);
+                            response = userLanguage === 'en' ? 
+                                `END Error retrieving your information.` : 
+                                `END Ikosa ryo kubona amakuru yawe.`;
                         } else {
-                            console.log("No admin records found.");
-                            response = userLanguages[phoneNumber] === 'en' ? 
-                                `END  information not found.` : 
-                                `END Amakuru ntago abonetse.`;
-                            res.send(response);
+                            const votedCandidate = results.length > 0 ? results[0].voted_candidate : 'None';
+                            response = userLanguage === 'en' ? 
+                                `END Your Information:\nPhone: ${phoneNumber}\nName: ${userName}\nVoted Candidate: ${votedCandidate}` : 
+                                                           `END Amakuru yawe:\nTelefone: ${phoneNumber}\nIzina: ${userName}\nUmukandida watoye: ${votedCandidate}`;
                         }
+                        res.send(response);
                     });
                     return; // Return to wait for async callback
                 }
