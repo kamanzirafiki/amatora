@@ -11,7 +11,7 @@ app.use(bodyParser.urlencoded({ extended: false }));
 const dbConfig = {
     host: 'btw2bu9p01s29x8hplgj-mysql.services.clever-cloud.com',
     user: 'u7oaqmno7he8keou',
-    password: 'RpLD6MtQImUD6trHT8hL', 
+    password: 'RpLD6MtQImUD6trHT8hL',
     database: 'btw2bu9p01s29x8hplgj'
 };
 
@@ -211,7 +211,7 @@ app.post('/ussd', (req, res) => {
                             res.send(response);
                         } else {
                             response = userLanguages[phoneNumber] === 'en' ? 
-                                `END  information not found.` : 
+                                `END information not found.` : 
                                 `END Amakuru ntago abonetse.`;
                             res.send(response);
                         }
