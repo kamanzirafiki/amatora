@@ -176,8 +176,8 @@ app.post('/ussd', (req, res) => {
                         // Check if the phone number has already voted
                         if (voters.has(phoneNumber)) {
                             response = userLanguages[phoneNumber] === 'en' ? 
-                                `CON You have already voted. Thank you!\n1. Main Menu\n2. Exit` : 
-                                `CON Waratoye. Murakoze!\n1. Menyu y'ibanze\n2. Sohoka`;
+                                `END You have already voted. Thank you!` : 
+                                `END Waratoye. Murakoze!`;
                         } else {
                             // Retrieve candidates from database
                             getCandidates(candidateNames => {
@@ -239,8 +239,8 @@ app.post('/ussd', (req, res) => {
                 const selectedCandidate = candidateNames[candidateIndex];
                 voters.add(phoneNumber); // Mark this phone number as having voted
                 response = userLanguages[phoneNumber] === 'en' ? 
-                    `CON Thank you for voting ${selectedCandidate}!\n1. Main Menu\n2. Exit` : 
-                    `CON Murakoze gutora, Mutoye ${selectedCandidate}!\n1. Menyu y'ibanze\n2. Sohoka`;
+                    `END Thank you for voting ${selectedCandidate}!` : 
+                    `END Murakoze gutora, Mutoye ${selectedCandidate}!`;
 
                 // Insert voting record into the database
                 const timestamp = new Date();
@@ -269,18 +269,6 @@ app.post('/ussd', (req, res) => {
             }
         });
         return; // Return to wait for async callback
-    } else if (userInput.length === 5 && (userInput[4] === '1' || userInput[4] === '2')) {
-        if (userInput[4] === '1') {
-            // Return to main menu
-            response = userLanguages[phoneNumber] === 'en' ? 
-                `CON Welcome to E-voting portal\n1. English\n2. Kinyarwanda` : 
-                `CON Murakaza neza kuri E-voting portal\n1. Icyongereza\n2. Ikinyarwanda`;
-        } else {
-            // Exit
-            response = userLanguages[phoneNumber] === 'en' ? 
-                `END Thank you for using E-voting portal.` : 
-                `END Murakoze gukoresha E-voting portal.`;
-        }
     } else {
         // Catch-all for any other invalid input
         response = userLanguages[phoneNumber] === 'en' ? 
