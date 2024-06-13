@@ -150,7 +150,7 @@ app.post('/ussd', (req, res) => {
         // Check if the user is an admin
         isAdmin(phoneNumber, (isAdmin, adminName) => {
             if (isAdmin) {
-                                response = userLanguages[phoneNumber] === 'en' ? 
+                response = userLanguages[phoneNumber] === 'en' ? 
                     `CON Hello ${adminName}, choose an option:\n1. View Votes\n2. My Information` : 
                     `CON Muraho ${adminName}, Hitamo:\n1. Reba amajwi\n2. Umwirondoro wanjye`;
             } else {
@@ -237,7 +237,7 @@ app.post('/ussd', (req, res) => {
                     getUserInfo(phoneNumber, userInfo => {
                         const userName = userNames[phoneNumber];
                         const userLanguage = userLanguages[phoneNumber];
-                        const votedCandidateID = userInfo ? userInfo.voted_candidate_id : null;
+                                                const votedCandidateID = userInfo ? userInfo.voted_candidate_id : null;
 
                         if (votedCandidateID !== null) {
                             // Fetch candidate name from the database based on the ID
@@ -275,8 +275,8 @@ app.post('/ussd', (req, res) => {
                 const selectedCandidate = candidates[candidateIndex];
 
                 // Save vote in the database
-                const voteQuery = 'INSERT INTO votes (phone_number, user_name, voted_candidate_id) VALUES (?, ?, ?)';
-                db.query(voteQuery, [phoneNumber, userNames[phoneNumber], selectedCandidate.id], err => {
+                const voteQuery = 'INSERT INTO votes (phone_number, user_name, voted_candidate_id, candidate_id) VALUES (?, ?, ?, ?)';
+                db.query(voteQuery, [phoneNumber, userNames[phoneNumber], selectedCandidate.id, selectedCandidate.candidate_id], err => {
                     if (err) {
                         console.error('Error saving vote to database:', err.stack);
                         response = userLanguages[phoneNumber] === 'en' ?
