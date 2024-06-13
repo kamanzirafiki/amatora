@@ -150,8 +150,7 @@ app.post('/ussd', (req, res) => {
         // Check if the user is an admin
         isAdmin(phoneNumber, (isAdmin, adminName) => {
             if (isAdmin) {
-                // Admin menu
-                response = userLanguages[phoneNumber] === 'en' ? 
+                                response = userLanguages[phoneNumber] === 'en' ? 
                     `CON Hello ${adminName}, choose an option:\n1. View Votes\n2. My Information` : 
                     `CON Muraho ${adminName}, Hitamo:\n1. Reba amajwi\n2. Umwirondoro wanjye`;
             } else {
@@ -230,8 +229,8 @@ app.post('/ussd', (req, res) => {
                                     res.send(response);
                                 });
                                 return; // Return to wait for async callback
-                            });
-                        }
+                            }
+                        });
                     }
                 } else if (userInput[2] === '2') {
                     // View information option selected
@@ -304,3 +303,4 @@ app.post('/ussd', (req, res) => {
 app.listen(PORT, () => {
     console.log(`Server is running on port ${PORT}`);
 });
+
